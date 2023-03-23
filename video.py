@@ -111,7 +111,7 @@ for text_annotation, text in text_annotations_with_confidence:
             vertices = frame.rotated_bounding_box.vertices
 
             x = int(sum(vertex.x for vertex in vertices) / len(vertices) * video_width)
-            y = int(sum(vertex.y for vertex in vertices) / len(vertices) * video_height) + 35
+            y = int(sum(vertex.y for vertex in vertices) / len(vertices) * video_height) # + 35
 
             formatted_text = f"{{\\pos({x},{y})}}{text}"
             subs.append(pysubs2.SSAEvent(
