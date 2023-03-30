@@ -4,6 +4,8 @@ from google.cloud import speech_v1p1beta1 as speech
 from pydub import AudioSegment
 from tqdm import tqdm
 
+language_video = "ko-KR"  # "en-US", "th-TH", "ko-KR", "ja-JP"
+
 def extract_audio_from_video(input_file, output_file):
     video = VideoFileClip(input_file)
     audio = video.audio
@@ -40,7 +42,7 @@ def transcribe_audio_with_timing(audio_file, chunk_size=3000):
             encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
             sample_rate_hertz=44100,
             enable_word_time_offsets=True,
-            language_code="en-US"
+            language_code=language_video,
         )
 
         operation = client.long_running_recognize(config=config, audio=recognition_audio)
@@ -67,7 +69,7 @@ def convert_to_srt(subtitles, output_file):
         srt_file.append(subtitle)
     srt_file.save(output_file, encoding='utf-8')
 
-def main(input_file, output_file):
+def main(input_file):
     print("Starting script...")
 
     if not os.path.isfile(input_file):
@@ -91,16 +93,18 @@ def main(input_file, output_file):
     if temp_audio_file != input_file:
         os.remove(temp_audio_file)
 
+    file_name_without_extension = os.path.splitext(input_file)[0]
+    output_file = f"{file_name_without_extension}.srt"
     print("Converting subtitles to SRT format...")
     convert_to_srt(subtitles, output_file)
 
     print("Output .srt file done!")
 
+
 if __name__ == "__main__":
-    if len(sys.argv) < 3:
-        print("Usage: python srt.py <input_file> <output_file>")
+    if len(sys.argv) < 2:
+        print("Usage: python srt.py <input_file>")
         sys.exit(1)
 
     input_file = sys.argv[1]
-    output_file = sys.argv[2]
-    main(input_file, output_file)
+    main(input_file)
