@@ -4,7 +4,8 @@ from google.cloud import speech_v1p1beta1 as speech
 from pydub import AudioSegment
 from tqdm import tqdm
 
-language_video = "ko-KR"  # "en-US", "th-TH", "ko-KR", "ja-JP"
+chunksize = 2000 # 
+language_video = "en-US"  # "en-US", "th-TH", "ko-KR", "ja-JP"
 
 def extract_audio_from_video(input_file, output_file):
     video = VideoFileClip(input_file)
@@ -18,7 +19,7 @@ def timedelta_to_srttime(time_delta):
     milliseconds = int(time_delta.microseconds / 1000)
     return pysrt.SubRipTime(hours, minutes, seconds, milliseconds)
 
-def transcribe_audio_with_timing(audio_file, chunk_size=3000):
+def transcribe_audio_with_timing(audio_file, chunk_size=chunksize):
     client = speech.SpeechClient.from_service_account_file(
         'service_account.json'
     )
@@ -43,6 +44,9 @@ def transcribe_audio_with_timing(audio_file, chunk_size=3000):
             sample_rate_hertz=44100,
             enable_word_time_offsets=True,
             language_code=language_video,
+            enable_automatic_punctuation=True,  # Enable automatic punctuation
+            enable_speaker_diarization=True,    # Enable speaker diarization
+            diarization_speaker_count=2         # Set the estimated number of speakers
         )
 
         operation = client.long_running_recognize(config=config, audio=recognition_audio)
