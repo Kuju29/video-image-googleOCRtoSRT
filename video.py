@@ -14,9 +14,9 @@ path = input_file
 # path = r"C:\Users\plan2\Downloads\bot\testimage\output-video.mp4"
 confidence = 0.2
 timeout = 600
-video_language = "th-TH" # th-TH
-translatelanguage = "th" # th
-    
+video_language = "th-TH"
+translatelanguage = "th"
+
 def get_max_confidence(text_annotation):
     max_confidence = 0
     for segment in text_annotation.segments:
@@ -60,7 +60,19 @@ def process_text_annotation(text_annotation):
             x = int(sum(vertex.x for vertex in vertices) / len(vertices) * video_width)
             y = int(sum(vertex.y for vertex in vertices) / len(vertices) * video_height)
 
-            formatted_text = f"{{\\pos({x},{y})}}{text}"
+            # Calculate bounding box dimensions
+            min_x = min(vertex.x for vertex in vertices)
+            max_x = max(vertex.x for vertex in vertices)
+            min_y = min(vertex.y for vertex in vertices)
+            max_y = max(vertex.y for vertex in vertices)
+            box_width = (max_x - min_x) * video_width
+            box_height = (max_y - min_y) * video_height
+
+            # Calculate font size based on bounding box height and add 5 units
+            font_size = int(box_height / 2) + 5  # You can adjust the divisor for desired size
+
+            # Center the text and set styles
+            formatted_text = f"{{\\an5\\pos({x},{y})\\fs{font_size}\\bord1\\shad0\\c&HFFFFFF&\\3c&H000000&}}{text}"
             subs.append(pysubs2.SSAEvent(
                 start=pysubs2.make_time(s=start_seconds),
                 end=pysubs2.make_time(s=end_seconds),
@@ -119,52 +131,15 @@ else:
 
 subs = pysubs2.SSAFile()
 
-text_annotations_with_confidence = []
-
 with ThreadPoolExecutor(max_workers=4) as executor:
     for annotation_result in result.annotation_results:
         text_annotations = annotation_result.text_annotations
         executor.map(process_text_annotation, text_annotations)
-        for text_annotation in annotation_result.text_annotations:
-            # max_confidence = get_max_confidence(text_annotation)
-            # if max_confidence >= confidence:
-                if translatelanguage:
-                    translation = translation_client.translate(text_annotation.text, target_language=translatelanguage)
-                    text = translation['translatedText']
-                else:
-                    text = text_annotation.text
 
-                for segment in text_annotation.segments:
-                    start_time_offset = segment.segment.start_time_offset
-                    end_time_offset = segment.segment.end_time_offset
-                    start_seconds = start_time_offset.total_seconds()
-                    end_seconds = end_time_offset.total_seconds()
-
-                    frames = segment.frames
-                    if frames:
-                        frame = frames[0]
-                        vertices = frame.rotated_bounding_box.vertices
-
-                        x = int(sum(vertex.x for vertex in vertices) / len(vertices) * video_width)
-                        y = int(sum(vertex.y for vertex in vertices) / len(vertices) * video_height) # + 35
-
-                        formatted_text = f"{{\\pos({x},{y})}}{text}"
-                        subs.append(pysubs2.SSAEvent(
-                            start=pysubs2.make_time(s=start_seconds),
-                            end=pysubs2.make_time(s=end_seconds),
-                            text=formatted_text,
-                        ))
-                        # if y >= video_height // 2:
-                        #     formatted_text = f"{{\\pos({x},{y})}}{text}"
-                        #     subs.append(pysubs2.SSAEvent(
-                        #         start=pysubs2.make_time(s=start_seconds),
-                        #         end=pysubs2.make_time(s=end_seconds),
-                        #         text=formatted_text,
-                        #     ))               
 sorted_events = sorted(subs, key=lambda x: x.start)
 subs.clear()
 subs.extend(sorted_events)
 
 subs.save(subtitle_full_path)
 
-print("\nfinnished processing.\n")
+print("\nFinished processing.\n")
